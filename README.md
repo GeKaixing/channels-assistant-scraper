@@ -1,105 +1,105 @@
-# Channels Assistant Scraper (视频号助手数据采集)
+# 视频号助手数据采集 (Channels Assistant Scraper)
 
-Playwright-powered data scraper for WeChat Channels management backend (`channels.weixin.qq.com/platform`).
-Extracts follower trends, video performance metrics, and per-video analytics into clean Excel files.
+基于 Playwright 的视频号助手 (`channels.weixin.qq.com/platform`) 数据采集工具。
+一键导出关注者趋势、视频日趋势、单篇视频明细到 Excel。
 
-## Features
+## 功能
 
-- **关注者数据** — Daily fan trend (net add, new follows, unfollows, total count)
-- **视频日趋势** — Daily video metrics (plays, likes, comments, shares, follows)
-- **单篇视频** — Per-video breakdown (play rate, avg watch time, engagement)
-- **One-shot export** — Single command outputs 3 separate Excel files to Desktop
-- **Cross-platform** — macOS / Linux / Windows (auto-detects Desktop path)
+- **关注者数据** — 每日净增、新增、取消关注、关注者总数趋势
+- **视频日趋势** — 每日播放、点赞、评论、分享、新增关注
+- **单篇视频** — 每篇视频的完播率、平均播放时长、互动数据
+- **一键三表** — 一条命令输出 3 个独立 Excel 到桌面
+- **跨平台** — macOS / Linux / Windows 自动识别桌面路径
 
-## Prerequisites
+## 安装
 
 ```bash
 pip install playwright openpyxl
 playwright install chromium
 ```
 
-## Quick Start
+## 快速开始
 
-### 1. Login (one-time)
+### 1. 首次登录（扫码）
 
 ```bash
 python3 templates/login_helper.py
 ```
 
-Opens a browser for QR scan → auto-saves session cookie.
+打开浏览器 → 扫码登录 → 自动保存 session cookie 到 `assets/`
 
-### 2. Export all three tables
+### 2. 一键导出三张表
 
 ```bash
 python3 templates/scrape_all_three.py
 ```
 
-Outputs to `~/Desktop/视频号助手数据/`:
+输出到 `~/Desktop/视频号助手数据/`：
 
-| File | Contents |
-|------|----------|
-| `关注者数据.xlsx` | 7-day follower trend |
-| `视频日趋势.xlsx` | 7-day video metrics |
-| `单篇视频.xlsx` | Per-video detail (play rate, duration, etc.) |
+| 文件 | 内容 |
+|------|------|
+| `关注者数据.xlsx` | 7 日关注者趋势 |
+| `视频日趋势.xlsx` | 7 日视频数据 |
+| `单篇视频.xlsx` | 单篇视频明细（完播率、时长等） |
 
-## Templates
+## 模板清单
 
-| File | Purpose |
-|------|---------|
-| `login_helper.py` | QR scan login, saves session to `assets/` |
-| `scrape_all_three.py` | **One-shot**: all 3 tables → 3 Excel files |
-| `scrape_dashboard.py` | Dashboard overview + all API responses |
-| `scrape_video_list.py` | Video list from `post/post_list` API |
-| `scrape_statistics.py` | Fans trend + post total stat APIs |
-| `explore_platform.py` | Full platform reconnaissance (nav, DOM, APIs) |
-| `export_excel.py` | Convert saved JSON dump to multi-sheet Excel |
+| 文件 | 用途 |
+|------|------|
+| `login_helper.py` | 首次扫码登录，保存 session |
+| `scrape_all_three.py` | **推荐** 一键三张表 → 3 个 Excel |
+| `scrape_dashboard.py` | 首页概览 + 所有 API 响应 |
+| `scrape_video_list.py` | 从 `post/post_list` API 获取视频列表 |
+| `scrape_statistics.py` | 粉丝趋势 + 作品统计 API |
+| `explore_platform.py` | 全平台探索（导航、DOM、API 端点） |
+| `export_excel.py` | JSON dump 转多 Sheet Excel |
 
-## Architecture
+## 架构
 
 ```
 channels.weixin.qq.com/platform
         │
-        ├── Main page (Vue SPA)
-        │     └── Sidebar navigation via mouse.click()
+        ├── 主页面（Vue SPA）
+        │     └── 侧边栏通过 mouse.click() 导航
         │
-        └── Data center pages (micro-app iframes)
+        └── 数据中心（micro-app iframe）
               ├── micro/statistic/follower  → 关注者数据
               └── micro/statistic/post      → 视频数据 + 单篇视频
 ```
 
-### Key Technical Notes
+### 关键要点
 
-1. **Sidebar requires mouse.click()** — The Vue sidebar is collapsed by default. `dispatchEvent()` and `locator.click()` don't work. Always use `page.mouse.click()` with `getBoundingClientRect()` coordinates.
+1. **侧边栏必须用 mouse.click()** — Vue 侧边栏默认折叠，`dispatchEvent()` 和 `locator.click()` 无效。必须通过 `getBoundingClientRect()` 获取坐标后用 `page.mouse.click(x, y)`。
 
-2. **Data center renders in iframes** — Sub-pages live inside `<micro-app>` iframes. Query via `page.frames` and evaluate JS inside the target frame.
+2. **数据中心在 iframe 里渲染** — 子页面在 `<micro-app>` iframe 中。通过 `page.frames` 查找并执行 JS。
 
-3. **"下载表格" triggers API, not file download** — These buttons populate TSV data at the bottom of the iframe's `innerText`. Click them and parse the tab-separated rows.
+3. **"下载表格"触发的是 API 调用** — 不会产生浏览器下载事件。点击后在 iframe 的 `innerText` 底部出现 TSV 数据，解析即可。
 
-4. **No direct URL navigation** — Vue SPA redirects unmatched routes. Always navigate via sidebar clicks.
+4. **不能直接 page.goto() 进入子页面** — Vue SPA 会重定向到 `/platform`。必须点击侧边栏导航。
 
-5. **Use `wait_until='domcontentloaded'`** — `networkidle` hangs due to keepalive heartbeat endpoint.
+5. **用 `wait_until='domcontentloaded'`** — `networkidle` 因为心跳 keepalive 会卡死。
 
-## API Endpoints (Discovered)
+## 已发现的 API 端点
 
-All POST to `https://channels.weixin.qq.com/cgi-bin/mmfinderassistant-bin/`
+所有 POST 到 `https://channels.weixin.qq.com/cgi-bin/mmfinderassistant-bin/`
 
-| Endpoint | Response | Data |
-|----------|----------|------|
-| `statistic/fans_trend` | JSON | add, reduce, netAdd, total arrays |
+| 端点 | 响应 | 数据 |
+|------|------|------|
+| `statistic/fans_trend` | JSON | add, reduce, netAdd, total 数组 |
 | `statistic/new_post_total_data` | JSON | browse, like, comment, forward, fav |
 | `statistic/get-product-statics` | JSON | exposeCnt, clickCnt, orderCnt |
 | `statistic/get-finder-total-statics` | JSON | fansNum, supportPostProduct |
-| `post/post_list` | JSON | Video list with engagement stats |
-| `notification/notification_list` | JSON | Notifications list |
-| `shop/get_finder_ec_info_for_opening_page` | JSON | Shop info, merchant status |
-| `auth/auth_data` | JSON | User profile (nickname, username) |
+| `post/post_list` | JSON | 视频列表（播放、点赞、评论等） |
+| `notification/notification_list` | JSON | 通知列表 |
+| `shop/get_finder_ec_info_for_opening_page` | JSON | 小店信息、商户状态 |
+| `auth/auth_data` | JSON | 用户信息（nickname, username） |
 
-## Pitfalls
+## 坑点
 
-- **Separate login from 微信小店** — `channels.weixin.qq.com` != `store.weixin.qq.com`. Different cookies, different domains.
-- **Session expires** — Check URL for `/login` after navigation. Re-run `login_helper.py` to refresh.
-- **Year prefix** — TSV data rows start with the current year (`2026/`, `2025/`, etc.). Hard-coded year check in extraction code; update if the calendar year changes.
-- **Chunk hash changes** — JS bundle filenames change with each deploy.
+- **与微信小店登录独立** — `channels.weixin.qq.com` 和 `store.weixin.qq.com` 是不同的域，cookie 不通
+- **Session 会过期** — 访问后检查 URL 是否包含 `/login`，过期了重新跑 `login_helper.py`
+- **年份前缀** — TSV 数据行以当前年份开头（`2026/`、`2025/` 等），跨年时需要更新
+- **JS chunk hash 随部署变化** — 文件名带 hash，不影响功能
 
 ## License
 
