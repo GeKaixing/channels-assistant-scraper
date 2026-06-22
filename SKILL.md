@@ -1,3 +1,10 @@
+---
+name: channels-assistant-scraper
+category: social-media
+description: 基于 Playwright 采集视频号助手 channels.weixin.qq.com/platform 的结构化数据。覆盖首页概览、内容管理、互动管理、直播、带货中心、数据中心、设置等功能。
+platforms: [macos, linux, windows]
+---
+
 # 视频号助手 Scraper
 
 基于 Playwright 采集 `https://channels.weixin.qq.com/platform`（视频号助手）的结构化数据。
